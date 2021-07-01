@@ -7,6 +7,7 @@ class Play extends Phaser.Scene {
         // load images/tile sprites
         this.load.image('rocket', './assets/rocket.png');
         this.load.image('spaceship', './assets/spaceship.png');
+        this.load.image('cow', './assets/cow.png');
         this.load.image('starfield', './assets/starfield.png');
         // load spritesheet
         this.load.spritesheet('explosion', './assets/explosion.png', {frameWidth: 64, frameHeight: 32, startFrame: 0, endFrame: 9});
@@ -37,10 +38,11 @@ class Play extends Phaser.Scene {
     .setOrigin(0.5, 0);
 
       // add spaceships (x3)
-      this.ship01 = new Spaceship(this, game.config.width + borderUISize*6, borderUISize*4, 'spaceship', 0, 30).setOrigin(0, 0);
-      this.ship02 = new Spaceship(this, game.config.width + borderUISize*3, borderUISize*5 + borderPadding*2, 'spaceship', 0, 20).setOrigin(0,0);
-      this.ship03 = new Spaceship(this, game.config.width, borderUISize*6 + borderPadding*4, 'spaceship', 0, 10).setOrigin(0,0);
-
+      this.ship01 = new Spaceship(this, game.config.width + borderUISize*6, borderUISize*7, 'spaceship', 0, 30).setOrigin(0, 0);
+      this.ship02 = new Spaceship(this, game.config.width + borderUISize*3, borderUISize*10 + borderPadding*2, 'spaceship', 0, 20).setOrigin(0,0);
+      this.ship03 = new Spaceship(this, game.config.width, borderUISize*6 + borderPadding*9, 'spaceship', 0, 10).setOrigin(0,0);
+      this.cow01 = new Cow(this, game.config.width + borderUISize*8, borderUISize*4, 'cow', 0, 100).setOrigin(0, 0);
+      this.cow02 = new Cow(this, game.config.width + borderUISize*2, borderUISize*5 + borderPadding*2, 'cow', 0, 100).setOrigin(0,0);
     // define keys
       keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
       keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
@@ -102,12 +104,14 @@ class Play extends Phaser.Scene {
         this.scene.start("menuScene");
       }
 
-      this.starfield.tilePositionX -= 0.6;
+      this.starfield.tilePositionX -= 0.3;
       if (!this.gameOver) {               
         this.p1Rocket.update();         // update rocket sprite
         this.ship01.update();           // update spaceships (x3)
         this.ship02.update();
         this.ship03.update();
+        this.cow01.update();               // update cow (x2)
+        this.cow02.update();
     } 
 
        // check collisions
@@ -123,6 +127,14 @@ class Play extends Phaser.Scene {
         this.p1Rocket.reset();
         this.shipExplode(this.ship01);
       } 
+      if(this.checkCollision(this.p1Rocket, this.cow02)) {
+        this.p1Rocket.reset();
+        this.cowExplode(this.cow02);   
+      }
+      if (this.checkCollision(this.p1Rocket, this.cow01)) {
+        this.p1Rocket.reset();
+        this.cowExplode(this.cow01);
+      }
     }
 
     checkCollision(rocket, ship) {
@@ -136,6 +148,17 @@ class Play extends Phaser.Scene {
           return false;
       }
   }
+  checkCollision(rocket, cow) {
+    // simple AABB checking
+    if (rocket.x < cow.x + cow.width && 
+        rocket.x + rocket.width > cow.x && 
+        rocket.y < cow.y + cow.height &&
+        rocket.height + rocket.y > cow. y) {
+            return true;
+    } else {
+        return false;
+    }
+}
 
   shipExplode(ship) {
     // temporarily hide ship
@@ -153,5 +176,23 @@ class Play extends Phaser.Scene {
     // score add and repaint
     this.p1Score += ship.points;
     this.scoreLeft.text = this.p1Score;       
+  }
+
+  cowExplode(cow) {
+    // temporarily hide ship
+    cow.alpha = 0;                         
+    // create explosion sprite at ship's position
+    let boom = this.add.sprite(cow.x, cow.y, 'explosion').setOrigin(0, 0);
+    boom.anims.play('explode');             // play explode animation
+    this.sound.play('sfx_cow_sound');
+    boom.on('animationcomplete', () => {    // callback after ani completes
+      cow.reset();                       // reset ship position
+      cow.alpha = 1;                     // make ship visible again
+      boom.destroy();                     // remove explosion sprite
+    });
+    
+          // score add and repaint
+    this.p1Score += cow.points;
+    this.scoreLeft.text = this.p1Score; 
   }
 }
